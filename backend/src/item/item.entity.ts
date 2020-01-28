@@ -16,7 +16,9 @@ export class ItemEntity implements Item {
 	@Column({type: "text"})
 	description!: string;
 
-	@ManyToOne(type => CategoryEntity, category => category.items)
+	@ManyToOne(type => CategoryEntity, category => category.items, {
+		eager: true,
+	})
 	category!: CategoryEntity;
 
 	@Column({
@@ -78,7 +80,7 @@ export class ItemEntity implements Item {
 	})
 	special!: Object;
 
-	@Column()
+	@Column({nullable: true})
 	skill!: number;
 
 	@CreateDateColumn()

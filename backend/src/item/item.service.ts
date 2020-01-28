@@ -33,4 +33,41 @@ export class ItemService {
 
 		return await this.categories.save(cat);
 	}
+
+	async updateCategory(id: number, name?: string, description?: string, parentId?: number): Promise<CategoryEntity> {
+		const cat = await this.findOneCategory(id);
+
+		if (name) {
+			cat.name = name;
+		}
+		if (description) {
+			cat.description = description;
+		}
+		if (parentId) {
+			cat.parent = await this.findOneCategory(parentId);
+		}
+
+		return await this.categories.save(cat);
+	}
+
+	async findAllItems(): Promise<Array<ItemEntity>> {
+		return await this.items.find();
+	}
+
+	async findOneItem(id: number): Promise<ItemEntity> {
+		return await this.items.findOneOrFail(id);
+	}
+
+	async createItem(name: string, description: string, categoryId: number): Promise<ItemEntity> {
+		return await this.items.save(this.items.create({
+			category: await this.findOneCategory(categoryId),
+			description,
+			name,
+		}));
+	}
+
+	async updateItem(id: number, data: Partial<ItemEntity>): Promise<ItemEntity> {
+		await this.items.update(id, {...data});
+		return await this.findOneItem(id);
+	}
 }
