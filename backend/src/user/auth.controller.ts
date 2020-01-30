@@ -2,29 +2,31 @@ import {ApiBearerAuth, ApiBody, ApiForbiddenResponse, ApiOkResponse, ApiTags} fr
 import {Body, Controller, HttpException, HttpStatus, Post, UseGuards} from "@nestjs/common";
 import {AuthGuard} from "@nestjs/passport";
 import {LoginDefinition, LoginResponse, PasswordChangeDefinition} from "./auth.dto";
-import {UserEntity, UserRequest} from "../user";
+import {UserRequest} from "./user.decorator";
 import {AuthService} from "./auth.service";
+import {UserEntity} from "./user.entity";
 
 @ApiTags("auth")
-@Controller()
+@Controller("auth")
 export class AuthController {
 	constructor(private readonly auth: AuthService) {
 	}
 
-	@ApiBody({type: LoginDefinition})
-	@UseGuards(AuthGuard("local"))
-	@Post("login")
 	@ApiOkResponse({description: "User is now logged in", type: LoginResponse})
 	@ApiForbiddenResponse({description: "Login information are incorrect"})
+	@ApiBody({type: LoginDefinition})
+	@UseGuards(AuthGuard("local"))
+	@Post()
 	async login(@UserRequest() user: UserEntity): Promise<LoginResponse> {
 		return this.auth.login(user);
 	}
 
-	@UseGuards(AuthGuard("jwt"))
 	@ApiBearerAuth()
-	@Post("passwd")
 	@ApiOkResponse({description: "Password is changed"})
 	@ApiForbiddenResponse({description: "Token expired or token is invalid"})
+	@ApiBody({type: PasswordChangeDefinition})
+	@UseGuards(AuthGuard("jwt"))
+	@Post("passwd")
 	async changePassword(@UserRequest() user: UserEntity, @Body() data: PasswordChangeDefinition) {
 		try {
 			await this.auth.changePassword(user.id, data.oldPass, data.newPass);

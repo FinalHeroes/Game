@@ -1,8 +1,11 @@
-import {Module} from "@nestjs/common";
+import {forwardRef, Module} from "@nestjs/common";
 import {DatabaseModule} from "../../database";
 import {encounterProviders} from "./encounter.provider";
 import {EncounterController} from "./encounter.controller";
 import {EncounterService} from "./encounter.service";
+import {WorldModule} from "../world.module";
+import {MonsterModule} from "../../monster";
+import {UserModule} from "../../user";
 
 @Module({
 	exports: [
@@ -10,6 +13,7 @@ import {EncounterService} from "./encounter.service";
 	],
 	imports: [
 		DatabaseModule,
+		forwardRef(() => UserModule),
 	],
 	controllers: [
 		EncounterController,

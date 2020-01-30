@@ -1,5 +1,6 @@
-import {ApiBody, ApiCreatedResponse, ApiOkResponse, ApiTags} from "@nestjs/swagger";
-import {Body, Controller, Get, Param, Post, Put} from "@nestjs/common";
+import {ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiOkResponse, ApiTags} from "@nestjs/swagger";
+import {Body, Controller, Get, Param, Post, Put, UseGuards} from "@nestjs/common";
+import {AuthGuard} from "@nestjs/passport";
 import {CreateCategoryInfo, CreateItemInfo, UpdateItemInfo} from "./item.dto";
 import {CategoryEntity} from "./category.entity";
 import {ItemService} from "./item.service";
@@ -23,15 +24,19 @@ export class ItemController {
 		return await this.items.findOneCategory(id);
 	}
 
+	@ApiBearerAuth()
 	@ApiCreatedResponse({type: CategoryEntity})
 	@ApiBody({type: CreateCategoryInfo})
+	@UseGuards(AuthGuard("jwt"))
 	@Post("category")
 	async createCategory(@Body() data: CreateCategoryInfo): Promise<CategoryEntity> {
 		return await this.items.createCategory(data.name, data.description, data.parentId);
 	}
 
+	@ApiBearerAuth()
 	@ApiOkResponse({type: CategoryEntity})
 	@ApiBody({type: CreateCategoryInfo})
+	@UseGuards(AuthGuard("jwt"))
 	@Put("category/:id")
 	async updateCategory(@Param("id") id: number, @Body() data: Partial<CreateCategoryInfo>): Promise<CategoryEntity> {
 		return await this.items.updateCategory(id, data.name, data.description, data.parentId);
@@ -49,15 +54,19 @@ export class ItemController {
 		return await this.items.findOneItem(id);
 	}
 
+	@ApiBearerAuth()
 	@ApiCreatedResponse({type: ItemEntity})
 	@ApiBody({type: CreateItemInfo})
+	@UseGuards(AuthGuard("jwt"))
 	@Post()
 	async createItem(@Body() data: CreateItemInfo): Promise<ItemEntity> {
 		return await this.items.createItem(data.name, data.description, data.categoryId);
 	}
 
+	@ApiBearerAuth()
 	@ApiOkResponse({type: ItemEntity})
 	@ApiBody({type: UpdateItemInfo})
+	@UseGuards(AuthGuard("jwt"))
 	@Put(":id")
 	async updateItem(@Param("id") id: number, @Body() data: Partial<UpdateItemInfo>): Promise<ItemEntity> {
 		return await this.items.updateItem(id, {...data});

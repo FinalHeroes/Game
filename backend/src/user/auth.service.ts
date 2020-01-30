@@ -1,8 +1,8 @@
 import {Injectable, Logger} from '@nestjs/common';
 import {JwtService} from "@nestjs/jwt";
-import {UserEntity, UserService} from "../user";
-import crypto from "crypto";
 import {AuthPayload, LoginResponse} from "./auth.dto";
+import {UserService} from "./user.service";
+import {UserEntity} from "./user.entity";
 
 @Injectable()
 export class AuthService {
@@ -12,10 +12,6 @@ export class AuthService {
 		private readonly users: UserService,
 		private readonly jwt: JwtService
 	) {
-	}
-
-	private static hashPassword(password: string): string {
-		return crypto.createHmac("sha256", password).digest("hex");
 	}
 
 	async validateUser(email: string, password: string): Promise<UserEntity | undefined> {
@@ -28,7 +24,7 @@ export class AuthService {
 			} else {
 				return undefined;
 			}
-		} catch(e) {
+		} catch (e) {
 			return undefined;
 		}
 	}
