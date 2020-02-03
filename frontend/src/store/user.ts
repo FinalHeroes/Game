@@ -10,7 +10,7 @@ export interface UserStore {
 	register: Thunk<UserStore, CreateUserInfo>;
 	login: Thunk<UserStore, LoginInfo>;
 	logout: Action<UserStore>;
-	modifyProfile: Thunk<UserStore, ModifyUserProfile>;
+	modifyProfile: Thunk<UserStore, Partial<ModifyUserProfile>>;
 	changePassword: Thunk<UserStore, PasswordChange>;
 }
 
@@ -22,11 +22,9 @@ export const userStore: UserStore = {
 	}),
 
 	getCurrent: thunk(async state => {
-		if ("userJWT" in localStorage) {
-			const token = localStorage.getItem("userJWT");
-			if (token) {
-				state.setUser(await UserService.getUserInfo(token));
-			}
+		const token = localStorage.getItem("userJWT");
+		if (token) {
+			state.setUser(await UserService.getUserInfo(token));
 		}
 	}),
 
