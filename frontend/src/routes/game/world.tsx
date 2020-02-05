@@ -1,4 +1,5 @@
-import {createElement, Fragment, FunctionComponent, useState} from "react";
+import {createElement, Fragment, FunctionComponent, useEffect, useState} from "react";
+import {useNavigation} from "react-navi";
 import {
 	Button,
 	Card,
@@ -16,6 +17,7 @@ import {
 	Typography
 } from "@material-ui/core";
 
+import {useStoreActions, useStoreState} from "../../store";
 import {WorldMapCard} from "./world.map";
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -40,7 +42,7 @@ interface MyDialogProps {
 const PlayerListDialog: FunctionComponent<MyDialogProps> = props => {
 	const {open, onClose} = props;
 
-	const handleClose = (e: {}, reason: string) => {
+	const handleClose = () => {
 		onClose();
 	};
 
@@ -92,6 +94,7 @@ const DeathDialog: FunctionComponent<MyDialogProps> = props => {
 
 const World: FunctionComponent = () => {
 	const classes = useStyles();
+	const nav = useNavigation();
 	const [open, setOpen] = useState({
 		players: false,
 		death: false,
@@ -101,10 +104,44 @@ const World: FunctionComponent = () => {
 		players: false,
 	});
 
+	const loadChar = useStoreActions(state => state.character.getMine);
+	const loadWorld = useStoreActions(state => state.world.load);
+	const moveChar = useStoreActions(state => state.character.moveTo);
+	const currentWorld = useStoreState(state => state.world.current);
+	const currentChar = useStoreState(state => state.character.character);
+
+	useEffect(() => {
+		if (!currentChar) {
+			loadChar().catch((e: any) => {
+				console.error(e);
+				nav.navigate("/", {replace: true});
+			});
+		}
+	}, []);
+
+	useEffect(() => {
+		if (currentChar && !currentWorld) {
+			console.log(currentChar);
+			loadWorld(currentChar.square.world.id).catch(console.error);
+		}
+	}, [currentChar]);
+
 	return <Fragment>
 		<Grid container alignItems="center" justify="center" spacing={2}>
 			<Grid item lg={9}>
-				<WorldMapCard/>
+				<WorldMapCard character={currentChar} world={currentWorld} onMove={(x, y) => {
+					if (currentChar) {
+						if (currentChar.square.x == x && currentChar.square.y == y) {
+							console.log("Moving in place, are we?");
+						} else {
+							moveChar({
+								worldId: currentChar.square.world.id,
+								x,
+								y,
+							});
+						}
+					}
+				}}/>
 			</Grid>
 			<Grid container item lg={9} spacing={1}>
 				<Grid item lg={8}>
@@ -125,7 +162,8 @@ const World: FunctionComponent = () => {
 							>
 								<CardContent classes={{root: classes.infoCard}}>
 									<Typography paragraph className={classes.infoText}>
-										Location : Isandiel @ 1.1
+										Location:&nbsp;
+										{currentWorld?.world.name} @ {currentChar?.square.x}.{currentChar?.square.y}
 									</Typography>
 								</CardContent>
 							</CardActionArea>

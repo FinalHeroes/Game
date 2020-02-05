@@ -54,6 +54,8 @@ export const userStore: UserStore = {
 		const token = localStorage.getItem("userJWT");
 		if (token) {
 			state.setUser(await UserService.modifyProfile(token, payload));
+		} else {
+			throw new Error("Not logged in!");
 		}
 	}),
 

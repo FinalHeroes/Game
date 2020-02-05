@@ -1,4 +1,4 @@
-import {createElement, FunctionComponent, useEffect, useState} from "react";
+import {createElement, Fragment, FunctionComponent, useEffect, useState} from "react";
 import {AddSharp, RemoveSharp} from "@material-ui/icons";
 import {green} from "@material-ui/core/colors";
 import {useNavigation} from "react-navi";
@@ -54,6 +54,7 @@ const CreateHero: FunctionComponent = () => {
 	const charStats = config.character.stats;
 	const classes = useStyles();
 	const nav = useNavigation();
+	const [showPage, setShowPage] = useState(false);
 	const [avatar, setAvatar] = useState<number | boolean>(false);
 	const [avatarList, setAvatarList] = useState<Array<Avatar>>([]);
 	const [name, setName] = useState("");
@@ -68,17 +69,21 @@ const CreateHero: FunctionComponent = () => {
 	const hasChar = useStoreActions(state => state.character.userHasChar);
 
 	useEffect(() => {
-		const request = async () => {
-			if (!await hasChar()) {
-				setAvatarList(await listAvatars());
+		hasChar().then(value => {
+			if (!value) {
+				listAvatars().then(value => setAvatarList(value)).catch(console.error);
+				setShowPage(true);
 			} else {
-				await nav.navigate("/game");
+				nav.navigate("/game", {replace: true});
 			}
-		};
-		request().catch(console.error);
+		}).catch(console.error);
 	}, []);
 
 	const getPointsLeft = () => charStats.startPoints - (str - charStats.start) - (dex - charStats.start) - (vit - charStats.start) - (int - charStats.start);
+
+	if (!showPage) {
+		return <Fragment/>;
+	}
 
 	return <Content>
 		<Card variant="outlined" classes={{root: classes.card}}>
@@ -87,10 +92,15 @@ const CreateHero: FunctionComponent = () => {
 				<Grid container direction="row" spacing={2}>
 					<Grid container item lg={3} direction="column" spacing={4}>
 						<Grid item lg>
-							<Typography gutterBottom>Stat Points Left : {getPointsLeft()}</Typography>
+							<Grid item>
+								<Typography align="center" gutterBottom>Stat Points Left :</Typography>
+							</Grid>
+							<Grid item>
+								<Typography align="center" variant="h4"> {getPointsLeft()}</Typography>
+							</Grid>
 						</Grid>
 						<Grid item lg>
-							<Typography variant="caption" gutterBottom>Strength</Typography>
+							<Typography variant="h6" gutterBottom>Strength</Typography>
 							<ButtonGroup variant="contained" color="primary" fullWidth>
 								<Button onClick={() => setStr(str - 1)} disabled={str === charStats.start}>
 									<RemoveSharp/>
@@ -104,7 +114,7 @@ const CreateHero: FunctionComponent = () => {
 							</ButtonGroup>
 						</Grid>
 						<Grid item lg>
-							<Typography variant="caption" gutterBottom>Dexterity</Typography>
+							<Typography variant="h6" gutterBottom>Dexterity</Typography>
 							<ButtonGroup variant="contained" color="primary" fullWidth>
 								<Button onClick={() => setDex(dex - 1)} disabled={dex === charStats.start}>
 									<RemoveSharp/>
@@ -118,7 +128,7 @@ const CreateHero: FunctionComponent = () => {
 							</ButtonGroup>
 						</Grid>
 						<Grid item lg>
-							<Typography variant="caption" gutterBottom>Vitality</Typography>
+							<Typography variant="h6" gutterBottom>Vitality</Typography>
 							<ButtonGroup variant="contained" color="primary" fullWidth>
 								<Button onClick={() => setVit(vit - 1)} disabled={vit === charStats.start}>
 									<RemoveSharp/>
@@ -132,7 +142,7 @@ const CreateHero: FunctionComponent = () => {
 							</ButtonGroup>
 						</Grid>
 						<Grid item lg>
-							<Typography variant="caption" gutterBottom>Intellect</Typography>
+							<Typography variant="h6" gutterBottom>Intellect</Typography>
 							<ButtonGroup variant="contained" color="primary" fullWidth>
 								<Button onClick={() => setInt(int - 1)} disabled={int === charStats.start}>
 									<RemoveSharp/>
@@ -180,28 +190,30 @@ const CreateHero: FunctionComponent = () => {
 					</Grid>
 					<Grid container item lg={3} direction="column" spacing={4}>
 						<Grid item lg>
-							<Typography variant="caption" gutterBottom>Damage</Typography>
-							<Typography variant="body1">
+							<Typography align="center" variant="body1" gutterBottom>Damage</Typography>
+							<Typography align="center" variant="h4">
 								{charStats.calculate.damage(str, 0).min} - {charStats.calculate.damage(str, 0).max}
 							</Typography>
 						</Grid>
 						<Grid item lg>
-							<Typography variant="caption" gutterBottom>Health</Typography>
-							<Typography variant="body1">{charStats.calculate.health(vit, 0)}</Typography>
+							<Typography align="center" variant="body1" gutterBottom>Health</Typography>
+							<Typography align="center" variant="h4">{charStats.calculate.health(vit, 0)}</Typography>
 						</Grid>
 						<Grid item lg>
-							<Typography variant="caption" gutterBottom>Mana</Typography>
-							<Typography variant="body1">{charStats.calculate.mana(int, 0)}</Typography>
+							<Typography align="center" variant="body1" gutterBottom>Dodge Chance</Typography>
+							<Typography align="center" variant="h4">
+								{charStats.calculate.dodgeChance(dex, 0).toPrecision(4)}%
+							</Typography>
 						</Grid>
 						<Grid item lg>
-							<Typography variant="caption" gutterBottom>Dodge Chance</Typography>
-							<Typography
-								variant="body1">{charStats.calculate.dodgeChance(dex, 0).toPrecision(4)}%</Typography>
+							<Typography align="center" variant="body1" gutterBottom>Critical Chance</Typography>
+							<Typography align="center" variant="h4">
+								{charStats.calculate.criticalChance(dex, 0).toPrecision(4)}%
+							</Typography>
 						</Grid>
 						<Grid item lg>
-							<Typography variant="caption" gutterBottom>Critical Chance</Typography>
-							<Typography
-								variant="body1">{charStats.calculate.criticalChance(dex, 0).toPrecision(4)}%</Typography>
+							<Typography align="center" variant="body1" gutterBottom>Mana</Typography>
+							<Typography align="center" variant="h4">{charStats.calculate.mana(int, 0)}</Typography>
 						</Grid>
 					</Grid>
 				</Grid>
