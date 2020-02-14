@@ -132,12 +132,12 @@ const World: FunctionComponent = () => {
 	const [location, setLocation] = useState<LocationInfo | null>(null);
 
 	const loadChar = useStoreActions(state => state.character.getMine);
+	const updateChar = useStoreActions(state => state.character.update);
 	const loadWorld = useStoreActions(state => state.world.load);
+	const loadSquare = useStoreActions(state => state.world.loadSquareContent);
 	const moveChar = useStoreActions(state => state.character.moveTo);
 	const currentWorld = useStoreState(state => state.world.current);
 	const currentChar = useStoreState(state => state.character.character);
-	const getCharsAtLocation = useStoreActions(state => state.character.findAtLocation);
-	const getEncounters = useStoreActions(state => state.world.loadEncounters);
 
 	const {character: charConfig} = config;
 
@@ -165,13 +165,29 @@ const World: FunctionComponent = () => {
 					y: square.y,
 				});
 			}
+
+			if (currentChar.isDead) {
+				setOpen({
+					players: false,
+					death: true,
+				});
+			}
+
+			if (!currentChar.isDead && open.death) {
+				setOpen({
+					players: false,
+					death: false,
+				});
+			}
 		}
 	}, [currentChar]);
 
 	useEffect(() => {
 		if (location) {
-			getCharsAtLocation(location).then(value => setCharsAtLocation(value), console.error);
-			getEncounters(location).then(value => setEncounters(value), console.error);
+			loadSquare(location).then(content => {
+				setCharsAtLocation(content.players);
+				setEncounters(content.encounters);
+			}, console.error);
 		}
 	}, [location]);
 
@@ -311,10 +327,10 @@ const World: FunctionComponent = () => {
 		                  }}
 		/>
 		<DeathDialog open={open.death}
-		             onClose={() => setOpen({
-			             players: false,
-			             death: false,
-		             })}
+		             onClose={() => updateChar({
+			             currentHealth: charConfig.stats.calculate.health(currentChar.vitality, 0),
+			             experience: currentChar.experience - Math.ceil(currentChar.experience * 0.1),
+		             }).catch(console.error)}
 		/>
 	</Fragment>;
 };
