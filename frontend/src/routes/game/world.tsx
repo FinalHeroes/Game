@@ -26,9 +26,10 @@ import {
 
 import {config, Encounter, PlayerCharacter} from "heroes-common";
 import {LocationInfo, store, useStoreActions, useStoreState} from "../../store";
-import {WorldAction} from "./world.action";
+import {WorldAction, StructureCard} from "./world.action";
 import {WorldMapCard} from "./world.map";
 import {AddSharp, RemoveSharp} from "@material-ui/icons";
+import {Structure} from "heroes-common/src";
 
 const useStyles = makeStyles((theme: Theme) =>
 	createStyles({
@@ -245,6 +246,7 @@ const World: FunctionComponent = () => {
 	});
 	const [charsAtLocation, setCharsAtLocation] = useState<Array<PlayerCharacter>>([]);
 	const [encounters, setEncounters] = useState<Array<Encounter>>([]);
+	const [structures, setStructures] = useState<Array<Structure>>([]);
 	const [location, setLocation] = useState<LocationInfo | null>(null);
 	const [playing, setPlaying] = useState(false);
 
@@ -255,6 +257,7 @@ const World: FunctionComponent = () => {
 	const moveChar = useStoreActions(state => state.character.moveTo);
 	const currentWorld = useStoreState(state => state.world.current);
 	const currentChar = useStoreState(state => state.character.character);
+	const addSnack = useStoreActions(state => state.notification.enqueue);
 
 	const {character: charConfig} = config;
 
@@ -321,6 +324,7 @@ const World: FunctionComponent = () => {
 			loadSquare(location).then(content => {
 				setCharsAtLocation(content.players);
 				setEncounters(content.encounters);
+				setStructures(content.structures);
 			}, console.error);
 		}
 	}, [location]);
@@ -348,6 +352,7 @@ const World: FunctionComponent = () => {
 			</Grid>
 			<Grid container item lg={9} spacing={1}>
 				<Grid item lg={9}>
+					<StructureCard structures={structures}/>
 					<WorldAction encounters={encounters}/>
 				</Grid>
 				<Grid item lg={3}>

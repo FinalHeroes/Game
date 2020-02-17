@@ -1,4 +1,4 @@
-import {createElement, FunctionComponent, useEffect, useState} from "react";
+import {createElement, FunctionComponent, useEffect, useState, Fragment} from "react";
 import {red} from "@material-ui/core/colors";
 import {useList, useUpdate} from "react-use";
 import {
@@ -11,11 +11,12 @@ import {
 	Grid,
 	LinearProgress,
 	makeStyles,
-	Theme
+	Theme, Typography
 } from "@material-ui/core";
 
 import {useStoreActions, useStoreState} from "../../store";
 import {config, Encounter, Monster} from "heroes-common";
+import {Structure} from "heroes-common/src";
 
 type MonsterFight = Monster & { health: number };
 
@@ -26,6 +27,64 @@ const useStyles = makeStyles((theme: Theme) =>
 		},
 	}),
 );
+
+interface StructureCardProps {
+	structures: Array<Structure>;
+}
+
+export const StructureCard: FunctionComponent<StructureCardProps> = ({structures}) => {
+	const [raised, setRaised] = useState(false);
+
+	if (structures.length < 1) {
+		return null;
+	} else {
+		return <Fragment>
+			{structures.map((value, index) => (
+				<Card key={index} style={{minHeight: 100, marginBottom: 8}}>
+					<CardContent style={{padding: 3}}>
+						<Grid container>
+							<Grid item lg={3}>
+								<CardHeader title={value.name}
+								            titleTypographyProps={{
+									            align: "left",
+									            variant: "h5",
+								            }}
+								/>
+							</Grid>
+							<Grid item lg={5}>
+								<Typography align="left">
+									{value.description}
+								</Typography>
+							</Grid>
+							{value.shop && <Grid item lg={4}>
+								<Card raised={raised} square>
+									<CardActionArea
+										onMouseEnter={() => setRaised(true)}
+										onMouseLeave={() => setRaised(false)}
+									>
+										<CardHeader title={"Shop Name"}
+										            titleTypographyProps={{
+											            align: "center",
+											            variant: "h6",
+										            }}
+										/>
+										<Typography align="center">
+											{"Shop description"}
+										</Typography>
+										<Typography align="center" variant="body2">
+											{"Click to shop!"}
+										</Typography>
+									</CardActionArea>
+								</Card>
+							</Grid>}
+
+						</Grid>
+					</CardContent>
+				</Card>
+			))}
+		</Fragment>;
+	}
+};
 
 interface MonsterCardProps {
 	index: number;
@@ -74,6 +133,7 @@ interface WorldActionProps {
 }
 
 export const WorldAction: FunctionComponent<WorldActionProps> = ({encounters}) => {
+	const addSnack = useStoreActions(state => state.notification.enqueue);
 	const updateChar = useStoreActions(state => state.character.update);
 	const character = useStoreState(state => state.character.character);
 	const [monsters, monstersMod] = useList<MonsterFight>([]);
@@ -111,15 +171,31 @@ export const WorldAction: FunctionComponent<WorldActionProps> = ({encounters}) =
 			const monExp = config.monster.calculate.exp(monster.level, character.level);
 
 			if (!monDog(monster.dexterity)) {
-				monster.health -= charAtk(character.strength, 0, 0, charCrit(character.dexterity, 0));
+				const isCrit = charCrit(character.dexterity, 0);
+				const atk = charAtk(character.strength, 0, 0, isCrit);
+				monster.health -= atk;
+				addSnack({
+					message: `You dealt ${atk} Damage! ${isCrit ? "CRITICAL" : ""}`,
+					options: {
+						variant: "success",
+					},
+				});
 				if (monster.health <= 0) {
 					updateChar({
 						experience: character.experience + monExp,
 					});
 					monstersMod.removeAt(index);
 				} else if (!charDog(character.dexterity, 0)) {
+					const isCrit = monCrit(monster.dexterity);
+					const dmg = monAtk(monster.strength, isCrit);
+					addSnack({
+						message: `Monster dealt ${dmg} Damage! ${isCrit ? "CRITICAL" : ""}`,
+						options: {
+							variant: "error",
+						},
+					});
 					updateChar({
-						currentHealth: character.currentHealth - monAtk(monster.strength, monCrit(monster.dexterity)),
+						currentHealth: character.currentHealth - dmg,
 					});
 				}
 			}
