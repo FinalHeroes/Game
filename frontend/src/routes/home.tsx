@@ -1,6 +1,8 @@
 import {createElement, Fragment, FunctionComponent, useState} from "react";
+import io from "socket.io-client";
 import {useNavigation} from "react-navi";
 import {useForm} from "react-hook-form";
+import {useMount} from "react-use";
 import {
 	Button,
 	Card,
@@ -20,8 +22,10 @@ import {
 	Theme,
 	Typography
 } from "@material-ui/core";
+
 import {useStoreActions, useStoreState} from "../store";
 import {CreateUserInfo} from "heroes-common";
+import Socket = SocketIOClient.Socket;
 
 interface LoginCredential {
 	email: string;
@@ -131,10 +135,13 @@ const RegisterDialog: FunctionComponent<RegisterDialogProps> = props => {
 };
 
 const Home: FunctionComponent = () => {
+	const addSnack = useStoreActions(state => state.notification.enqueue);
 	const {register, handleSubmit, errors} = useForm<LoginCredential>();
 	const [registerOpen, setRegisterOpen] = useState(false);
 	const nav = useNavigation();
 	const classes = useStyles();
+
+	let socket: Socket | null = null;
 
 	const user = {
 		logout: useStoreActions(state => state.user.logout),
@@ -147,9 +154,37 @@ const Home: FunctionComponent = () => {
 			await user.login(data);
 			await nav.navigate("/hero");
 		} catch (e) {
+			addSnack({
+				message: "Failed to login!",
+				options: {
+					variant: "error",
+				},
+			});
+
 			console.error(e);
 		}
 	};
+
+	useMount(() => {
+		socket = io("/chat");
+
+		socket.on("error", (e: any) => console.error(e));
+
+		socket.on("connect", () => {
+			console.log(socket?.id ?? undefined);
+
+			socket?.on("test", () => console.log("TEST!"));
+			socket?.on("echo", (data: string) => console.log(data));
+
+			socket?.emit("echo", {
+				token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImtpbmdAbnVtc2dpbC5jbyIsInN1YiI6ImI2MzdkZjVlLWM0YTctNGU3MS1hMDFlLTA4MTdiNTZhMDc3ZSIsImlhdCI6MTU4MjA0MzUzMiwiZXhwIjoxNTgyMzAyNzMyfQ.MEPyKCP9P0kcLIOxbnp-9uACt8wQREiUes7Jpa7iCAs",
+				world: 1,
+				x: 10,
+				y: 12,
+				content: "Hello World!",
+			});
+		});
+	});
 
 	return <Content>
 		<Grid container spacing={5} justify="space-evenly" alignItems="center" style={{height: "100%"}}>

@@ -1,5 +1,6 @@
 import {createElement, Fragment, FunctionComponent, useEffect, useState} from "react";
 import {blue, green, red} from "@material-ui/core/colors";
+import {AddSharp, RemoveSharp} from "@material-ui/icons";
 import {useNavigation} from "react-navi";
 import {useMount} from "react-use";
 import {
@@ -24,12 +25,11 @@ import {
 	Typography
 } from "@material-ui/core";
 
-import {config, Encounter, PlayerCharacter} from "heroes-common";
+import {config, Encounter, PlayerCharacter, Structure} from "heroes-common";
 import {LocationInfo, store, useStoreActions, useStoreState} from "../../store";
-import {WorldAction, StructureCard} from "./world.action";
+import {FeatureCard} from "./world.feature";
+import {WorldAction} from "./world.combat";
 import {WorldMapCard} from "./world.map";
-import {AddSharp, RemoveSharp} from "@material-ui/icons";
-import {Structure} from "heroes-common/src";
 
 const useStyles = makeStyles((theme: Theme) =>
 	createStyles({
@@ -261,6 +261,16 @@ const World: FunctionComponent = () => {
 
 	const {character: charConfig} = config;
 
+	const loadContent = () => {
+		if (location) {
+			loadSquare(location).then(content => {
+				setCharsAtLocation(content.players);
+				setEncounters(content.encounters);
+				setStructures(content.structures);
+			}, console.error);
+		}
+	};
+
 	useMount(() => {
 		loadChar().then(() => {
 			if (!store.getState().character.character) {
@@ -320,13 +330,7 @@ const World: FunctionComponent = () => {
 	}, [currentChar]);
 
 	useEffect(() => {
-		if (location) {
-			loadSquare(location).then(content => {
-				setCharsAtLocation(content.players);
-				setEncounters(content.encounters);
-				setStructures(content.structures);
-			}, console.error);
-		}
+		loadContent();
 	}, [location]);
 
 	if (!currentChar) {
@@ -352,7 +356,7 @@ const World: FunctionComponent = () => {
 			</Grid>
 			<Grid container item lg={9} spacing={1}>
 				<Grid item lg={9}>
-					<StructureCard structures={structures}/>
+					<FeatureCard structures={structures}/>
 					<WorldAction encounters={encounters}/>
 				</Grid>
 				<Grid item lg={3}>
@@ -469,6 +473,7 @@ const World: FunctionComponent = () => {
 		/>
 		<DeathDialog open={open.death}
 		             onClose={() => {
+			             loadContent();
 			             updateChar({
 				             currentHealth: charConfig.stats.calculate.health(currentChar.vitality, 0),
 				             experience: currentChar.experience - Math.ceil(currentChar.experience * 0.1),
