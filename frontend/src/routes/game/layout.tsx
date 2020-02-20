@@ -144,11 +144,13 @@ const GameChat: FunctionComponent = () => {
 					</IconButton>
 				}/>
 				<CardContent classes={{root: classes.chatContent}}>
-					{messages.map((value, index) => (<Typography
-						variant="body2" key={index} classes={{paragraph: classes.chatParagraph}}
-					>
-						<strong>{value.characterName}</strong> : {value.content}
-					</Typography>))}
+					{messages.map((value, index) => (
+						<Typography
+							variant="body2" key={index} classes={{paragraph: classes.chatParagraph}}
+						>
+							<strong>{value.characterName}</strong> : {value.content}
+						</Typography>
+					))}
 				</CardContent>
 				<form onSubmit={e => {
 					e.preventDefault();
@@ -158,6 +160,7 @@ const GameChat: FunctionComponent = () => {
 					<CardActions>
 						<TextField
 							variant="filled" size="small" fullWidth name="chatText" label="Message"
+							autoComplete="off"
 							value={content} onChange={e => setContent(e.target.value)}
 						/>
 						<Button type="submit" color="primary">Send</Button>
