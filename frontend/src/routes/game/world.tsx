@@ -1,8 +1,8 @@
 import {createElement, Fragment, FunctionComponent, useEffect, useState} from "react";
 import {blue, green, red} from "@material-ui/core/colors";
 import {AddSharp, RemoveSharp} from "@material-ui/icons";
+import {useMap, useMount} from "react-use";
 import {useNavigation} from "react-navi";
-import {useMount} from "react-use";
 import {
 	Button,
 	ButtonGroup,
@@ -25,7 +25,7 @@ import {
 	Typography
 } from "@material-ui/core";
 
-import {config, Encounter, PlayerCharacter, Structure} from "heroes-common";
+import {config, Encounter, Item, PlayerCharacter, Structure} from "heroes-common";
 import {LocationInfo, store, useStoreActions, useStoreState} from "../../store";
 import {FeatureCard} from "./world.feature";
 import {WorldAction} from "./world.combat";
@@ -231,6 +231,46 @@ const LevelUpDIalog: FunctionComponent<MyDialogProps & { character: PlayerCharac
 	</Dialog>;
 };
 
+interface ItemPickCardProps {
+	item: Item;
+	quantity: number;
+	onPickup: (item: Item, quantity: number) => void;
+}
+
+const ItemPickupCard: FunctionComponent<ItemPickCardProps> = ({item, quantity, onPickup}) => {
+	const [raised, setRaised] = useState(false);
+	const classes = useStyles();
+
+	const handlePickup = () => {
+		onPickup(item, quantity);
+	};
+
+	return <Card raised={raised} style={{marginBottom: "0.6rem"}}>
+		<CardActionArea
+			style={{display: "flex"}}
+			onMouseEnter={() => setRaised(true)}
+			onMouseLeave={() => setRaised(false)}
+			onClick={handlePickup}
+		>
+			<CardContent classes={{root: classes.infoCard}} style={{flex: "1 0 auto"}}>
+				<Typography paragraph className={classes.infoText}>
+					{quantity} X {item.name}
+				</Typography>
+			</CardContent>
+			<CardMedia
+				component="img"
+				height={32}
+				style={{width: 32}}
+				image={`/assets/items/${item.image}`}
+			/>
+		</CardActionArea>
+	</Card>;
+};
+
+interface ItemDrop {
+	[itemId: number]: { item: Item; quantity: number };
+}
+
 const World: FunctionComponent = () => {
 	const classes = useStyles();
 	const nav = useNavigation();
@@ -249,6 +289,7 @@ const World: FunctionComponent = () => {
 	const [structures, setStructures] = useState<Array<Structure>>([]);
 	const [location, setLocation] = useState<LocationInfo | null>(null);
 	const [playing, setPlaying] = useState(false);
+	const [itemDropped, {remove: removeDrop, set: setDrop, reset: resetDrops}] = useMap<ItemDrop>({});
 
 	const loadChar = useStoreActions(state => state.character.getMine);
 	const updateChar = useStoreActions(state => state.character.update);
@@ -258,6 +299,9 @@ const World: FunctionComponent = () => {
 	const currentWorld = useStoreState(state => state.world.current);
 	const currentChar = useStoreState(state => state.character.character);
 	const addSnack = useStoreActions(state => state.notification.enqueue);
+	const inventory = useStoreState(state => state.character.inventory);
+	const updateInventory = useStoreActions(state => state.character.updateInventory);
+	const pickupItem = useStoreActions(state => state.character.pickupItem);
 
 	const {character: charConfig} = config;
 
@@ -331,6 +375,7 @@ const World: FunctionComponent = () => {
 
 	useEffect(() => {
 		loadContent();
+		resetDrops();
 	}, [location]);
 
 	if (!currentChar) {
@@ -357,7 +402,19 @@ const World: FunctionComponent = () => {
 			<Grid container item lg={9} spacing={1}>
 				<Grid item lg={9}>
 					<FeatureCard structures={structures}/>
-					<WorldAction encounters={encounters}/>
+					<WorldAction
+						encounters={encounters}
+						itemDroped={(item, quantity) => {
+							if (item.id in itemDropped) {
+								setDrop(item.id, {
+									item: itemDropped[item.id].item,
+									quantity: itemDropped[item.id].quantity + quantity,
+								});
+							} else {
+								setDrop(item.id, {item, quantity});
+							}
+						}}
+					/>
 				</Grid>
 				<Grid item lg={3}>
 					<Card raised={raised.status} style={{marginBottom: "0.6rem"}}>
@@ -430,7 +487,7 @@ const World: FunctionComponent = () => {
 							</CardContent>
 						</CardActionArea>
 					</Card>
-					<Card raised={raised.players}>
+					<Card raised={raised.players} style={{marginBottom: "0.6rem"}}>
 						<CardActionArea
 							onMouseEnter={() => setRaised({
 								location: false,
@@ -455,6 +512,28 @@ const World: FunctionComponent = () => {
 							</CardContent>
 						</CardActionArea>
 					</Card>
+					<div style={{height: "auto", overflowY: "auto"}}>
+						{Object.keys(itemDropped).map(value => {
+							const index = parseInt(value);
+							return <ItemPickupCard
+								key={index}
+								item={itemDropped[index].item}
+								quantity={itemDropped[index].quantity}
+								onPickup={((item, quantity) => {
+									pickupItem({item, quantity}).then((picked: number) => {
+										if (picked === quantity) {
+											removeDrop(item.id);
+										} else {
+											setDrop(item.id, {
+												item,
+												quantity: quantity - picked,
+											});
+										}
+									}).catch(console.error);
+								})}
+							/>;
+						})}
+					</div>
 				</Grid>
 			</Grid>
 		</Grid>

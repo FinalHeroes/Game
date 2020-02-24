@@ -22,10 +22,10 @@ export class InventoryService implements OnModuleInit {
 		this.rolls = this.refs.get(RollService, {strict: false});
 	}
 
-	async create(rollId: string, ownerId: string, quantity: number): Promise<InventoryEntity> {
+	async create(userId: string, rollId: string, quantity: number): Promise<InventoryEntity> {
 		return await this.inventories.save(this.inventories.create({
+			owner: await this.characters.findMine(userId),
 			roll: await this.rolls.findOne(rollId),
-			owner: await this.characters.findMine(ownerId),
 			quantity: quantity
 		}));
 	}
@@ -36,13 +36,28 @@ export class InventoryService implements OnModuleInit {
 			.leftJoinAndSelect("inventory.roll", "roll")
 			.leftJoinAndSelect("roll.item", "item")
 			.leftJoinAndSelect("item.category", "category")
-			.leftJoinAndSelect("category.parent", "parent")
+			.leftJoinAndSelect("category.parent", "parent1")
+			.leftJoinAndSelect("parent1.parent", "parent2")
 			.where("owner.id = :ownerId", {ownerId})
+			.orderBy("item.id", "ASC")
 			.getMany();
 	}
 
 	async findOne(id: string): Promise<InventoryEntity> {
-		return await this.inventories.findOneOrFail(id, {relations: ["owner", "roll", "roll.item", "item.category"]});
+		const slot = await this.inventories.createQueryBuilder("inventory")
+			.leftJoinAndSelect("inventory.owner", "owner")
+			.leftJoinAndSelect("inventory.roll", "roll")
+			.leftJoinAndSelect("roll.item", "item")
+			.leftJoinAndSelect("item.category", "category")
+			.leftJoinAndSelect("category.parent", "parent1")
+			.leftJoinAndSelect("parent1.parent", "parent2")
+			.where("inventory.id = :id", {id})
+			.getOne();
+		if(slot){
+			return slot;
+		}else{
+			throw new Error("Item not found");
+		}
 	}
 
 	async update(id: string, quantity: number): Promise<InventoryEntity> {
