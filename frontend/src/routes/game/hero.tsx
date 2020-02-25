@@ -22,7 +22,7 @@ import {
 import {store, useStoreActions, useStoreState} from "../../store";
 import {useNavigation} from "react-navi";
 import {useMount} from "react-use";
-import {CharacterEquipment, CharacterInventory, getItemType, Item, ItemRoll, ItemType} from "heroes-common/src";
+import {CharacterEquipment, CharacterInventory, getItemType, ItemRoll, ItemType, ItemRarity} from "heroes-common";
 import {EquipmentType} from "heroes-common/src/interfaces/equipment-type";
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -40,11 +40,24 @@ const useStyles = makeStyles((theme: Theme) =>
 
 const HtmlTooltip = withStyles((theme: Theme) => ({
 	tooltip: {
-		backgroundColor: '#f5f5f9',
-		color: 'rgba(0, 0, 0, 0.87)',
+		backgroundColor: (props: { rarity: ItemRarity }) => {
+			switch (props.rarity) {
+				case "common":
+					return "#f5f5f9";
+				case "uncommon":
+					return "#b1e2d3";
+				case "rare":
+					return "#ffe887";
+				case "legendary":
+					return "#ffa181";
+				case "unique":
+					return "#ceffc3";
+			}
+		},
+		color: "rgba(0, 0, 0, 0.87)",
 		maxWidth: 440,
 		fontSize: theme.typography.pxToRem(12),
-		border: '1px solid #dadde9',
+		border: "1px solid #dadde9",
 	},
 }))(Tooltip);
 
@@ -58,7 +71,9 @@ const ItemInspect: FunctionComponent<ItemInspectProps> = ({iRoll}) => {
 			<u>{iRoll.item.name}</u>
 			<small><em> {iRoll.item.category.parent?.name} - {iRoll.item.category.name}</em></small>
 		</Typography>
-		<small>{iRoll.item.description}</small><Divider/>
+
+		<small>{iRoll.item.description}</small>
+		<Divider/>
 		<ul>
 			{iRoll.item.heal > 0 && <li>
 				<Typography variant="caption">
@@ -158,68 +173,69 @@ const EquipmentSlot: FunctionComponent<EquipmentSlotProps> = ({name, slot, eqTyp
 	</Card>;
 
 	if (slot) {
-		let eqItem: Item | null = null;
+		let eqItem: ItemRoll | null = null;
 
 		switch (eqType) {
 			case "Head":
 				if (slot.headSlot) {
-					eqItem = slot.headSlot.item;
+					eqItem = slot.headSlot;
 				}
 				break;
 			case "Chest":
 				if (slot.chestSlot) {
-					eqItem = slot.chestSlot.item;
+					eqItem = slot.chestSlot;
 				}
 				break;
 			case "Belt":
 				if (slot.beltSlot) {
-					eqItem = slot.beltSlot.item;
+					eqItem = slot.beltSlot;
 				}
 				break;
 			case "Boot":
 				if (slot.bootSlot) {
-					eqItem = slot.bootSlot.item;
+					eqItem = slot.bootSlot;
 				}
 				break;
 			case "Left Hand":
 				if (slot.leftHandSlot) {
-					eqItem = slot.leftHandSlot.item;
+					eqItem = slot.leftHandSlot;
 				}
 				break;
 			case "Right Hand":
 				if (slot.rightHandSlot) {
-					eqItem = slot.rightHandSlot.item;
+					eqItem = slot.rightHandSlot;
 				}
 				break;
 			case "Ring 1":
 				if (slot.ring1Slot) {
-					eqItem = slot.ring1Slot.item;
+					eqItem = slot.ring1Slot;
 				}
 				break;
 			case "Ring 2":
 				if (slot.ring2Slot) {
-					eqItem = slot.ring2Slot.item;
+					eqItem = slot.ring2Slot;
 				}
 				break;
 			case "Neck":
 				if (slot.neckSlot) {
-					eqItem = slot.neckSlot.item;
+					eqItem = slot.neckSlot;
 				}
 				break;
 			case "Bag":
 				if (slot.bagSlot) {
-					eqItem = slot.bagSlot.item;
+					eqItem = slot.bagSlot;
 				}
 				break;
 			case "Artifact":
 				if (slot.artifactSlot) {
-					eqItem = slot.artifactSlot.item;
+					eqItem = slot.artifactSlot;
 				}
 				break;
 			default:
 				break;
 		}
-		if (eqItem) {
+
+		if (eqItem?.item) {
 			return <Fragment>
 				<Card raised={raised} classes={{root: classes.itemSlotCard}}>
 					<CardActionArea
@@ -227,13 +243,20 @@ const EquipmentSlot: FunctionComponent<EquipmentSlotProps> = ({name, slot, eqTyp
 						onMouseEnter={() => setRaised(true)}
 						onMouseLeave={() => setRaised(false)}
 					>
-						<CardContent>
-							<CardMedia
-								component="img"
-								image={`/assets/items/${eqItem.image}`}
-								height={94}
-							/>
-						</CardContent>
+						<HtmlTooltip
+							rarity={eqItem.item.rarity}
+							title={
+								<ItemInspect iRoll={eqItem}/>
+							}
+						>
+							<CardContent>
+								<CardMedia
+									component="img"
+									image={`/assets/items/${eqItem.item.image}`}
+									height={94}
+								/>
+							</CardContent>
+						</HtmlTooltip>
 					</CardActionArea>
 				</Card>
 			</Fragment>;
@@ -252,7 +275,8 @@ interface InventorySlotProps {
 
 const InventorySlot: FunctionComponent<InventorySlotProps> = ({slot, onUse}) => {
 	const classes = useStyles();
-	const discard = useStoreActions(state => state.character.deleteInventory);
+	const discardAll = useStoreActions(state => state.character.deleteInventory);
+	const discardOne = useStoreActions(state => state.character.updateInventory);
 	const [itemEl, setItemEl] = useState<null | HTMLElement>(null);
 	const handleItemClose = () => setItemEl(null);
 	const handleUse = () => {
@@ -262,10 +286,23 @@ const InventorySlot: FunctionComponent<InventorySlotProps> = ({slot, onUse}) => 
 		}
 		handleItemClose();
 	};
-	const handleDiscard = () => {
-		if (slot) {
 
+	const handleDiscardOne = () => {
+		if (slot) {
+			if (slot.quantity > 1) {
+				discardOne({id: slot.id, quantity: slot.quantity - 1}).catch(console.error);
+			} else {
+				handleDiscardAll();
+			}
 		}
+		handleItemClose();
+	};
+
+	const handleDiscardAll = () => {
+		if (slot) {
+			discardAll(slot);
+		}
+		handleItemClose();
 	};
 
 	if (slot) {
@@ -292,8 +329,18 @@ const InventorySlot: FunctionComponent<InventorySlotProps> = ({slot, onUse}) => 
 					getItemType(slot.roll.item) == ItemType.Consumable &&
 					<MenuItem onClick={handleUse}>Use</MenuItem>
 				}
-				<MenuItem onClick={handleItemClose}>Discard One</MenuItem>
-				<MenuItem onClick={handleItemClose}>Discard All</MenuItem>
+				{
+					slot.quantity > 1 &&
+					<MenuItem onClick={handleDiscardOne}>Discard One</MenuItem>
+				}
+				{
+					slot.quantity > 1 &&
+					<MenuItem onClick={handleDiscardAll}>Discard All</MenuItem>
+				}
+				{
+					slot.quantity === 1 &&
+					<MenuItem onClick={handleDiscardAll}>Discard</MenuItem>
+				}
 			</Menu>
 
 			<Card variant="outlined" classes={{root: classes.itemSlotCard}}>
@@ -302,6 +349,7 @@ const InventorySlot: FunctionComponent<InventorySlotProps> = ({slot, onUse}) => 
 					onClick={e => setItemEl(e.currentTarget.parentElement)}
 				>
 					<HtmlTooltip
+						rarity={slot?.roll.item.rarity}
 						title={
 							<ItemInspect iRoll={slot.roll}/>
 						}
@@ -488,7 +536,6 @@ const Hero: FunctionComponent = () => {
 				</CardContent>
 			</Card>
 		</Grid>
-
 
 		<Grid item lg={9}>
 			<Card>
