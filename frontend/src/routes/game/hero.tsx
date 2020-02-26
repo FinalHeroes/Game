@@ -1,4 +1,6 @@
 import {createElement, Fragment, FunctionComponent, useState} from "react";
+import {useNavigation} from "react-navi";
+import {useMount} from "react-use";
 import {
 	Badge,
 	Card,
@@ -19,11 +21,17 @@ import {
 	Typography,
 	withStyles,
 } from "@material-ui/core";
+
 import {store, useStoreActions, useStoreState} from "../../store";
-import {useNavigation} from "react-navi";
-import {useMount} from "react-use";
-import {CharacterEquipment, CharacterInventory, getItemType, ItemRoll, ItemType, ItemRarity} from "heroes-common";
-import {EquipmentType} from "heroes-common/src/interfaces/equipment-type";
+import {
+	CharacterEquipment,
+	CharacterInventory,
+	EquipmentSlotType,
+	getItemType,
+	ItemRarity,
+	ItemRoll,
+	ItemType
+} from "heroes-common";
 
 const useStyles = makeStyles((theme: Theme) =>
 	createStyles({
@@ -51,7 +59,7 @@ const HtmlTooltip = withStyles((theme: Theme) => ({
 				case "legendary":
 					return "#ffa181";
 				case "unique":
-					return "#ceffc3";
+					return "#ffd700";
 			}
 		},
 		color: "rgba(0, 0, 0, 0.87)",
@@ -62,105 +70,107 @@ const HtmlTooltip = withStyles((theme: Theme) => ({
 }))(Tooltip);
 
 interface ItemInspectProps {
-	iRoll: ItemRoll;
+	roll: ItemRoll;
 }
 
-const ItemInspect: FunctionComponent<ItemInspectProps> = ({iRoll}) => {
+const ItemInspect: FunctionComponent<ItemInspectProps> = ({roll}) => {
 	return <Fragment>
 		<Typography color="inherit">
-			<u>{iRoll.item.name}</u>
-			<small><em> {iRoll.item.category.parent?.name} - {iRoll.item.category.name}</em></small>
+			<u>{roll.item.name}</u>
+			<small><em> {roll.item.category.parent?.name} - {roll.item.category.name}</em></small>
 		</Typography>
 
-		<small>{iRoll.item.description}</small>
+		<small>{roll.item.description}</small>
 		<Divider/>
 		<ul>
-			{iRoll.item.heal > 0 && <li>
+			{roll.item.heal > 0 && <li>
 				<Typography variant="caption">
-					{`Heals ${iRoll.item.heal} Health points.`}
+					{`Heals ${roll.item.heal} Health points.`}
 				</Typography>
 			</li>}
-			{iRoll.item.strengthMod > 0 && <li>
+			{roll.item.strengthMod > 0 && <li>
 				<Typography variant="caption">
-					{`Adds ${iRoll.item.strengthMod * iRoll.strengthMult} Strength points.`}
+					{`Adds ${(roll.item.strengthMod * roll.strengthMult).toPrecision(4)} Strength points.`}
 				</Typography>
 			</li>}
-			{iRoll.item.dexterityMod > 0 && <li>
+			{roll.item.dexterityMod > 0 && <li>
 				<Typography variant="caption">
-					{`Adds ${iRoll.item.dexterityMod * iRoll.dexterityMult} Dexterity points.`}
+					{`Adds ${(roll.item.dexterityMod * roll.dexterityMult).toPrecision(4)} Dexterity points.`}
 				</Typography>
 			</li>}
-			{iRoll.item.vitalityMod > 0 && <li>
+			{roll.item.vitalityMod > 0 && <li>
 				<Typography variant="caption">
-					{`Adds ${iRoll.item.vitalityMod * iRoll.vitalityMult} Vitality points.`}
+					{`Adds ${(roll.item.vitalityMod * roll.vitalityMult).toPrecision(4)} Vitality points.`}
 				</Typography>
 			</li>}
-			{iRoll.item.intellectMod > 0 && <li>
+			{roll.item.intellectMod > 0 && <li>
 				<Typography variant="caption">
-					{`Adds ${iRoll.item.intellectMod * iRoll.intellectMult} Intellect points.`}
+					{`Adds ${(roll.item.intellectMod * roll.intellectMult).toPrecision(4)} Intellect points.`}
 				</Typography>
 			</li>}
-			{iRoll.item.damageMod > 0 && <li>
+			{roll.item.damageMod > 0 && <li>
 				<Typography variant="caption">
-					{`Adds ${iRoll.item.damageMod * iRoll.damageMult} points to Damage dealt.`}
+					{`Adds ${(roll.item.damageMod * roll.damageMult).toPrecision(4)} points to Damage dealt.`}
 				</Typography>
 			</li>}
-			{iRoll.item.armorMod > 0 && <li>
+			{roll.item.armorMod > 0 && <li>
 				<Typography variant="caption">
-					{`Removes ${iRoll.item.armorMod * iRoll.armorMult}% of damage taken.`}
+					{`Removes ${(roll.item.armorMod * roll.armorMult).toPrecision(4)}% of damage taken.`}
 				</Typography>
 			</li>}
-			{iRoll.item.criticalChanceMod > 0 && <li>
+			{roll.item.criticalChanceMod > 0 && <li>
 				<Typography variant="caption">
-					{`Adds ${iRoll.item.criticalChanceMod * iRoll.criticalChanceMult}% chance of Critical Hit.`}
+					{`Adds ${(roll.item.criticalChanceMod * roll.criticalChanceMult).toPrecision(4)}% chance of Critical Hit.`}
 				</Typography>
 			</li>}
-			{iRoll.item.criticalDamageMod > 0 && <li>
+			{roll.item.criticalDamageMod > 0 && <li>
 				<Typography variant="caption">
-					{`Adds ${iRoll.item.criticalDamageMod * iRoll.criticalDamageMult}% damage on Critical Hits.`}
+					{`Adds ${(roll.item.criticalDamageMod * roll.criticalDamageMult).toPrecision(4)}% damage on Critical Hits.`}
 				</Typography>
 			</li>}
-			{iRoll.item.dodgeChanceMod > 0 && <li>
+			{roll.item.dodgeChanceMod > 0 && <li>
 				<Typography variant="caption">
-					{`Adds ${iRoll.item.dodgeChanceMod * iRoll.dodgeChanceMult}% chance of Dodging attacks.`}
+					{`Adds ${(roll.item.dodgeChanceMod * roll.dodgeChanceMult).toPrecision(4)}% chance of Dodging attacks.`}
 				</Typography>
 			</li>}
-			{iRoll.item.healthMod > 0 && <li>
+			{roll.item.healthMod > 0 && <li>
 				<Typography variant="caption">
-					{`Increases Max Health by ${iRoll.item.healthMod * iRoll.healthMult}%.`}
+					{`Increases Max Health by ${(roll.item.healthMod * roll.healthMult).toPrecision(4)}%.`}
 				</Typography>
 			</li>}
-			{iRoll.item.manaMod > 0 && <li>
+			{roll.item.manaMod > 0 && <li>
 				<Typography variant="caption">
-					{`Increases Max Mana by ${iRoll.item.manaMod * iRoll.manaMult}%.`}
+					{`Increases Max Mana by ${(roll.item.manaMod * roll.manaMult).toPrecision(4)}%.`}
 				</Typography>
 			</li>}
-			{iRoll.item.itemDropMod > 0 && <li>
+			{roll.item.itemDropMod > 0 && <li>
 				<Typography variant="caption">
-					{`Adds ${iRoll.item.itemDropMod * iRoll.itemDropMult}% chance of finding loot.`}
+					{`Adds ${(roll.item.itemDropMod * roll.itemDropMult).toPrecision(4)}% chance of finding loot.`}
 				</Typography>
 			</li>}
-			{iRoll.item.goldDropMod > 0 && <li>
+			{roll.item.goldDropMod > 0 && <li>
 				<Typography variant="caption">
-					{`Gold rewards increased by ${iRoll.item.goldDropMod * iRoll.goldDropMult}%.`}
+					{`Gold rewards increased by ${(roll.item.goldDropMod * roll.goldDropMult).toPrecision(4)}%.`}
 				</Typography>
 			</li>}
 		</ul>
-		{iRoll.item.stackLimit > 1 && (<Fragment><Divider/>{`Stacks up to ${iRoll.item.stackLimit}`}</Fragment>)}
+		{roll.item.stackLimit > 1 && (<Fragment><Divider/>{`Stacks up to ${roll.item.stackLimit}`}</Fragment>)}
 	</Fragment>;
 };
 
 interface EquipmentSlotProps {
-	name: string;
+	name: EquipmentSlotType;
 	slot?: CharacterEquipment;
-	eqType: EquipmentType;
 	onEquip?: (slot: CharacterEquipment) => void;
 }
 
-const EquipmentSlot: FunctionComponent<EquipmentSlotProps> = ({name, slot, eqType, onEquip}) => {
+const EquipmentSlot: FunctionComponent<EquipmentSlotProps> = ({name, slot, onEquip}) => {
 	const classes = useStyles();
 	const [raised, setRaised] = useState(false);
-	const failedCard = <Card raised={raised} classes={{root: classes.itemSlotCard}}>
+	const [equipEl, setEquipEl] = useState<null | HTMLElement>(null);
+	const handleEquipClose = () => setEquipEl(null);
+
+	const emptySlot = <Card raised={raised} classes={{root: classes.itemSlotCard}}>
 		<CardActionArea
 			classes={{root: classes.itemSlotAction}}
 			onMouseEnter={() => setRaised(true)}
@@ -173,81 +183,40 @@ const EquipmentSlot: FunctionComponent<EquipmentSlotProps> = ({name, slot, eqTyp
 	</Card>;
 
 	if (slot) {
-		let eqItem: ItemRoll | null = null;
-
-		switch (eqType) {
-			case "Head":
-				if (slot.headSlot) {
-					eqItem = slot.headSlot;
-				}
-				break;
-			case "Chest":
-				if (slot.chestSlot) {
-					eqItem = slot.chestSlot;
-				}
-				break;
-			case "Belt":
-				if (slot.beltSlot) {
-					eqItem = slot.beltSlot;
-				}
-				break;
-			case "Boot":
-				if (slot.bootSlot) {
-					eqItem = slot.bootSlot;
-				}
-				break;
-			case "Left Hand":
-				if (slot.leftHandSlot) {
-					eqItem = slot.leftHandSlot;
-				}
-				break;
-			case "Right Hand":
-				if (slot.rightHandSlot) {
-					eqItem = slot.rightHandSlot;
-				}
-				break;
-			case "Ring 1":
-				if (slot.ring1Slot) {
-					eqItem = slot.ring1Slot;
-				}
-				break;
-			case "Ring 2":
-				if (slot.ring2Slot) {
-					eqItem = slot.ring2Slot;
-				}
-				break;
-			case "Neck":
-				if (slot.neckSlot) {
-					eqItem = slot.neckSlot;
-				}
-				break;
-			case "Bag":
-				if (slot.bagSlot) {
-					eqItem = slot.bagSlot;
-				}
-				break;
-			case "Artifact":
-				if (slot.artifactSlot) {
-					eqItem = slot.artifactSlot;
-				}
-				break;
-			default:
-				break;
-		}
+		const toCamelCase = (str: string) => str.replace(/(?:^\w|[A-Z]|\b\w)/g, (ltr, idx) => idx === 0 ? ltr.toLowerCase() : ltr.toUpperCase()).replace(/\s+/g, '');
+		let eqItem = Reflect.get(slot, Reflect.ownKeys(slot).find(value => {
+			const prop = toCamelCase(name) + "Slot";
+			return value === prop;
+		}) ?? 0) as ItemRoll | undefined;
 
 		if (eqItem?.item) {
 			return <Fragment>
+				<Menu
+					keepMounted
+					anchorOrigin={{
+						vertical: "top",
+						horizontal: "center",
+					}}
+					transformOrigin={{
+						vertical: "top",
+						horizontal: "center",
+					}}
+					anchorEl={equipEl}
+					open={Boolean(equipEl)}
+					onClose={handleEquipClose}
+				>
+					<MenuItem onClick={handleEquipClose}>Unequip</MenuItem>
+				</Menu>
 				<Card raised={raised} classes={{root: classes.itemSlotCard}}>
 					<CardActionArea
 						classes={{root: classes.itemSlotAction}}
 						onMouseEnter={() => setRaised(true)}
 						onMouseLeave={() => setRaised(false)}
+						onClick={e => setEquipEl(e.currentTarget.parentElement)}
 					>
 						<HtmlTooltip
 							rarity={eqItem.item.rarity}
-							title={
-								<ItemInspect iRoll={eqItem}/>
-							}
+							title={<ItemInspect roll={eqItem}/>}
 						>
 							<CardContent>
 								<CardMedia
@@ -261,10 +230,10 @@ const EquipmentSlot: FunctionComponent<EquipmentSlotProps> = ({name, slot, eqTyp
 				</Card>
 			</Fragment>;
 		} else {
-			return failedCard;
+			return emptySlot;
 		}
 	} else {
-		return failedCard;
+		return emptySlot;
 	}
 };
 
@@ -305,6 +274,12 @@ const InventorySlot: FunctionComponent<InventorySlotProps> = ({slot, onUse}) => 
 		handleItemClose();
 	};
 
+	const handleEquipping = () => {
+		if (slot && getItemType(slot.roll.item) === ItemType.Equipment) {
+
+		}
+	};
+
 	if (slot) {
 		return <Fragment>
 			<Menu
@@ -321,26 +296,11 @@ const InventorySlot: FunctionComponent<InventorySlotProps> = ({slot, onUse}) => 
 				open={Boolean(itemEl)}
 				onClose={handleItemClose}
 			>
-				{
-					getItemType(slot.roll.item) == ItemType.Equipment &&
-					<MenuItem onClick={handleUse}>Equip</MenuItem>
-				}
-				{
-					getItemType(slot.roll.item) == ItemType.Consumable &&
-					<MenuItem onClick={handleUse}>Use</MenuItem>
-				}
-				{
-					slot.quantity > 1 &&
-					<MenuItem onClick={handleDiscardOne}>Discard One</MenuItem>
-				}
-				{
-					slot.quantity > 1 &&
-					<MenuItem onClick={handleDiscardAll}>Discard All</MenuItem>
-				}
-				{
-					slot.quantity === 1 &&
-					<MenuItem onClick={handleDiscardAll}>Discard</MenuItem>
-				}
+				{getItemType(slot.roll.item) == ItemType.Equipment && <MenuItem onClick={handleUse}>Equip</MenuItem>}
+				{getItemType(slot.roll.item) == ItemType.Consumable && <MenuItem onClick={handleUse}>Use</MenuItem>}
+				{slot.quantity > 1 && <MenuItem onClick={handleDiscardOne}>Discard One</MenuItem>}
+				{slot.quantity > 1 && <MenuItem onClick={handleDiscardAll}>Discard All</MenuItem>}
+				{slot.quantity === 1 && <MenuItem onClick={handleDiscardAll}>Discard</MenuItem>}
 			</Menu>
 
 			<Card variant="outlined" classes={{root: classes.itemSlotCard}}>
@@ -350,9 +310,7 @@ const InventorySlot: FunctionComponent<InventorySlotProps> = ({slot, onUse}) => 
 				>
 					<HtmlTooltip
 						rarity={slot?.roll.item.rarity}
-						title={
-							<ItemInspect iRoll={slot.roll}/>
-						}
+						title={<ItemInspect roll={slot.roll}/>}
 					>
 						<CardContent>
 							<Badge
@@ -440,28 +398,24 @@ const Hero: FunctionComponent = () => {
 									<EquipmentSlot
 										name="Head"
 										slot={currentHero.equipment}
-										eqType="Head"
 									/>
 								</Grid>
 								<Grid item>
 									<EquipmentSlot
 										name="Chest"
 										slot={currentHero.equipment}
-										eqType="Chest"
 									/>
 								</Grid>
 								<Grid item>
 									<EquipmentSlot
 										name="Belt"
 										slot={currentHero.equipment}
-										eqType="Belt"
 									/>
 								</Grid>
 								<Grid item>
 									<EquipmentSlot
 										name="Boot"
 										slot={currentHero.equipment}
-										eqType="Boot"
 									/>
 								</Grid>
 							</Grid>
@@ -482,28 +436,24 @@ const Hero: FunctionComponent = () => {
 									<EquipmentSlot
 										name="Left Hand"
 										slot={currentHero.equipment}
-										eqType="Left Hand"
 									/>
 								</Grid>
 								<Grid item>
 									<EquipmentSlot
 										name="Right Hand"
 										slot={currentHero.equipment}
-										eqType="Right Hand"
 									/>
 								</Grid>
 								<Grid item>
 									<EquipmentSlot
 										name="Ring 1"
 										slot={currentHero.equipment}
-										eqType="Ring 1"
 									/>
 								</Grid>
 								<Grid item>
 									<EquipmentSlot
 										name="Ring 2"
 										slot={currentHero.equipment}
-										eqType="Ring 2"
 									/>
 								</Grid>
 							</Grid>
@@ -514,13 +464,11 @@ const Hero: FunctionComponent = () => {
 								<EquipmentSlot
 									name="Neck"
 									slot={currentHero.equipment}
-									eqType="Neck"
 								/>
 							</Grid>
 							<Grid item lg={2}>
 								<EquipmentSlot
 									name="Bag"
-									eqType="Bag"
 									slot={currentHero.equipment}
 								/>
 							</Grid>
@@ -528,7 +476,6 @@ const Hero: FunctionComponent = () => {
 								<EquipmentSlot
 									name="Artifact"
 									slot={currentHero.equipment}
-									eqType="Artifact"
 								/>
 							</Grid>
 						</Grid>
@@ -549,7 +496,7 @@ const Hero: FunctionComponent = () => {
 										slot={items[value]}
 										onUse={handleUse}
 									/>
-								</GridListTile>
+								</GridListTile>;
 							} else {
 								return <GridListTile key={value}>
 									<InventorySlot/>
