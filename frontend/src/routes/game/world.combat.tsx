@@ -126,13 +126,13 @@ export const WorldAction: FunctionComponent<WorldActionProps> = ({encounters, it
 				if (monster.health <= 0) {
 					updateChar({
 						experience: character.experience + monExp,
-						gold: character.gold + (monGold * (1 + dStats.goldDrop / 10)),
+						gold: character.gold + Math.round(monGold * (1 + dStats.goldDrop / 10)),
 					});
 					monstersMod.removeAt(index);
 					monItems(monster.drops, dStats.itemDrop).forEach(value => itemDroped(value.item, value.quantity));
 				} else if (!charDog(character.dexterity, 0)) {
 					updateChar({
-						currentHealth: character.currentHealth - monAtk(monster.strength, monCrit(monster.dexterity)),
+						currentHealth: character.currentHealth - monAtk(monster.strength, monCrit(monster.dexterity), dStats.armor),
 					});
 				}
 			}
