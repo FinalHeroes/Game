@@ -1,4 +1,5 @@
 import {createElement, Fragment, FunctionComponent, useState} from "react";
+import {blue, green, red} from "@material-ui/core/colors";
 import {useNavigation} from "react-navi";
 import {useMount} from "react-use";
 import {
@@ -8,6 +9,7 @@ import {
 	CardContent,
 	CardHeader,
 	CardMedia,
+	CircularProgress,
 	createStyles,
 	Divider,
 	Grid,
@@ -26,6 +28,7 @@ import {store, useStoreActions, useStoreState} from "../../store";
 import {
 	CharacterEquipment,
 	CharacterInventory,
+	config,
 	EquipmentSlotType,
 	getItemType,
 	ItemRarity,
@@ -42,6 +45,15 @@ const useStyles = makeStyles((theme: Theme) =>
 		itemSlotAction: {
 			width: "100%",
 			height: "100%",
+		},
+		healthCircle: {
+			color: red["800"],
+		},
+		manaCircle: {
+			color: blue["800"],
+		},
+		energyCircle: {
+			color: green["800"],
 		},
 	}),
 );
@@ -264,7 +276,6 @@ const InventorySlot: FunctionComponent<InventorySlotProps> = ({slot, onUse}) => 
 	const handleUse = () => {
 		if (onUse && slot) {
 			onUse(slot);
-			console.log(slot);
 		}
 		handleItemClose();
 	};
@@ -368,11 +379,11 @@ const Hero: FunctionComponent = () => {
 	const currentHero = useStoreState(state => state.character.character);
 	const items = useStoreState(state => state.character.inventory);
 	const loadHero = useStoreActions(state => state.character.getMine);
-	//const equipment = useStoreActions(state => state.character.)
 	const addSnack = useStoreActions(state => state.notification.enqueue);
 	const updateHero = useStoreActions(state => state.character.update);
 	const consumeItem = useStoreActions(state => state.character.consumeItem);
 	const nav = useNavigation();
+	const {character: charConfig} = config;
 
 	useMount(() => {
 		if (!currentHero) {
@@ -402,131 +413,193 @@ const Hero: FunctionComponent = () => {
 	};
 
 	if (!currentHero) {
-		return <Fragment/>;
+		return null;
 	}
 
-	return <Grid container justify="center" spacing={2}>
-		<Grid item lg={7}>
-			<Card raised>
-				<CardHeader title="Hero"/>
-				<CardContent style={{padding: 8}}>
-					<Grid container spacing={2}>
-						<Grid container item direction="row" spacing={2} justify="center">
-							<Grid container item lg={2} direction="column" spacing={2}>
+	const dStats = charConfig.stats.calculate.derivedStats(currentHero);
+	const charDmg = charConfig.stats.calculate.damage(dStats.strength, dStats.damage);
+
+	return <Fragment>
+		<Grid container justify="center" spacing={2}>
+			<Grid item lg={6}>
+				<Card raised>
+					<CardHeader
+						title={currentHero.name}
+						action={
+							<Grid container direction="row" spacing={4}>
 								<Grid item>
-									<EquipmentSlot
-										name="Head"
-										slot={currentHero.equipment}
-									/>
+									<Tooltip arrow placement="top"
+									         title={`Health : ${currentHero?.currentHealth} / ${charConfig.stats.calculate.health(dStats.vitality, dStats.maxHealth)}`}
+									>
+										<CircularProgress variant="static" thickness={18}
+										                  classes={{circle: classes.healthCircle}}
+										                  value={currentHero.currentHealth * 100 / charConfig.stats.calculate.health(dStats.vitality, dStats.maxHealth)}
+										/>
+									</Tooltip>
 								</Grid>
 								<Grid item>
-									<EquipmentSlot
-										name="Chest"
-										slot={currentHero.equipment}
-									/>
+									<Tooltip arrow placement="top"
+									         title={`Mana : ${currentHero.currentMana} / ${charConfig.stats.calculate.mana(dStats.intellect, dStats.maxMana)}`}
+									>
+										<CircularProgress variant="static" thickness={18}
+										                  classes={{circle: classes.manaCircle}}
+										                  value={currentHero.currentMana * 100 / charConfig.stats.calculate.mana(dStats.intellect, dStats.maxMana)}
+										/>
+									</Tooltip>
 								</Grid>
 								<Grid item>
-									<EquipmentSlot
-										name="Belt"
-										slot={currentHero.equipment}
-									/>
+									<Tooltip arrow placement="top"
+									         title={`Energy : ${currentHero.currentEnergy} / ${200 + 10 * (currentHero.level - 1)}`}
+									>
+										<CircularProgress variant="static" thickness={18}
+										                  classes={{circle: classes.energyCircle}}
+										                  value={currentHero.currentEnergy * 100 / (200 + 10 * (currentHero.level - 1))}
+										/>
+									</Tooltip>
 								</Grid>
-								<Grid item>
-									<EquipmentSlot
-										name="Boot"
-										slot={currentHero.equipment}
-									/>
+							</Grid>
+						}
+					/>
+					<CardContent style={{padding: 8}}>
+						<Grid container spacing={2}>
+							<Grid container item lg={12} direction="row" spacing={2} justify="center">
+								<Grid container item lg={2} direction="column" spacing={2} style={{marginRight: 5}}>
+									<Grid item>
+										<EquipmentSlot
+											name="Head"
+											slot={currentHero.equipment}
+										/>
+									</Grid>
+									<Grid item>
+										<EquipmentSlot
+											name="Chest"
+											slot={currentHero.equipment}
+										/>
+									</Grid>
+									<Grid item>
+										<EquipmentSlot
+											name="Belt"
+											slot={currentHero.equipment}
+										/>
+									</Grid>
+									<Grid item>
+										<EquipmentSlot
+											name="Boot"
+											slot={currentHero.equipment}
+										/>
+									</Grid>
+								</Grid>
+
+								<Grid item lg={6}>
+									<Card style={{height: "100%"}} variant="outlined">
+										<CardMedia
+											component="img"
+											height={"100%"}
+											image={`/assets/avatar/${currentHero.avatar.filename}`}
+											style={{backgroundSize: "cover"}}
+										/>
+									</Card>
+								</Grid>
+
+								<Grid container item lg={2} direction="column" spacing={2}>
+									<Grid item>
+										<EquipmentSlot
+											name="Left Hand"
+											slot={currentHero.equipment}
+										/>
+									</Grid>
+									<Grid item>
+										<EquipmentSlot
+											name="Right Hand"
+											slot={currentHero.equipment}
+										/>
+									</Grid>
+									<Grid item>
+										<EquipmentSlot
+											name="Ring 1"
+											slot={currentHero.equipment}
+										/>
+									</Grid>
+									<Grid item>
+										<EquipmentSlot
+											name="Ring 2"
+											slot={currentHero.equipment}
+										/>
+									</Grid>
 								</Grid>
 							</Grid>
 
-							<Grid item lg={6}>
-								<Card style={{height: "100%"}} variant="outlined">
-									<CardMedia
-										component="img"
-										height={"100%"}
-										image={`/assets/avatar/${currentHero.avatar.filename}`}
-										style={{backgroundSize: "cover"}}
-									/>
-								</Card>
-							</Grid>
+							<Grid container item lg={12} justify="center" spacing={2} style={{margin: 0}}>
+								<Grid item lg={3}>
+									<Typography component="p" variant="caption" align="right">
+										Strength : {dStats.strength.toPrecision(4)}<br/>
+										Dexterity : {dStats.dexterity.toPrecision(4)}<br/>
+										Vitality : {dStats.vitality.toPrecision(4)}<br/>
+										Intellect : {dStats.intellect.toPrecision(4)}<br/>
+										Max Health : {charConfig.stats.calculate.health(dStats.vitality, dStats.maxHealth)}<br/>
+										Max Mana : {charConfig.stats.calculate.mana(dStats.intellect, dStats.maxMana)}
+									</Typography>
+								</Grid>
 
-							<Grid container item lg={2} direction="column" spacing={2}>
-								<Grid item>
+								<Grid item lg={2}>
 									<EquipmentSlot
-										name="Left Hand"
+										name="Neck"
 										slot={currentHero.equipment}
 									/>
 								</Grid>
-								<Grid item>
+								<Grid item lg={2}>
 									<EquipmentSlot
-										name="Right Hand"
+										name="Bag"
 										slot={currentHero.equipment}
 									/>
 								</Grid>
-								<Grid item>
+								<Grid item lg={2}>
 									<EquipmentSlot
-										name="Ring 1"
+										name="Artifact"
 										slot={currentHero.equipment}
 									/>
 								</Grid>
-								<Grid item>
-									<EquipmentSlot
-										name="Ring 2"
-										slot={currentHero.equipment}
-									/>
+
+								<Grid item lg={3}>
+									<Typography component="p" variant="caption" align="left">
+										Armor : {dStats.armor.toPrecision(4)}<br/>
+										Damage : {charDmg.min.toPrecision(4)} - {charDmg.max.toPrecision(4)}<br/>
+										Dodge Chance : {charConfig.stats.calculate.dodgeChance(dStats.dexterity, dStats.dodgeChange).toPrecision(4)}%<br/>
+										Critical Chance : {charConfig.stats.calculate.criticalChance(dStats.dexterity, dStats.criticalChance).toPrecision(4)}%<br/>
+										Critical Damage : {(1.25 + dStats.criticalDamage / 10).toPrecision(4)}X
+									</Typography>
 								</Grid>
 							</Grid>
 						</Grid>
+					</CardContent>
+				</Card>
+			</Grid>
 
-						<Grid container item lg={12} justify="center" spacing={3}>
-							<Grid item lg={2}>
-								<EquipmentSlot
-									name="Neck"
-									slot={currentHero.equipment}
-								/>
-							</Grid>
-							<Grid item lg={2}>
-								<EquipmentSlot
-									name="Bag"
-									slot={currentHero.equipment}
-								/>
-							</Grid>
-							<Grid item lg={2}>
-								<EquipmentSlot
-									name="Artifact"
-									slot={currentHero.equipment}
-								/>
-							</Grid>
-						</Grid>
-					</Grid>
-				</CardContent>
-			</Card>
+			<Grid item lg={9}>
+				<Card>
+					<CardHeader title="Inventory"/>
+					<CardContent>
+						<GridList cols={10} cellHeight={128}>
+							{[...Array(10).keys()].map(value => {
+								if (value <= items.length - 1) {
+									return <GridListTile key={value}>
+										<InventorySlot
+											slot={items[value]}
+											onUse={handleUse}
+										/>
+									</GridListTile>;
+								} else {
+									return <GridListTile key={value}>
+										<InventorySlot/>
+									</GridListTile>;
+								}
+							})}
+						</GridList>
+					</CardContent>
+				</Card>
+			</Grid>
 		</Grid>
-
-		<Grid item lg={9}>
-			<Card>
-				<CardHeader title="Inventory"/>
-				<CardContent>
-					<GridList cols={10} cellHeight={128}>
-						{[...Array(10).keys()].map(value => {
-							if (value <= items.length - 1) {
-								return <GridListTile key={value}>
-									<InventorySlot
-										slot={items[value]}
-										onUse={handleUse}
-									/>
-								</GridListTile>;
-							} else {
-								return <GridListTile key={value}>
-									<InventorySlot/>
-								</GridListTile>;
-							}
-						})}
-					</GridList>
-				</CardContent>
-			</Card>
-		</Grid>
-	</Grid>;
+	</Fragment>;
 };
 
 export default Hero;
