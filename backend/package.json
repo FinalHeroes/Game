@@ -27,7 +27,7 @@
 		"@nestjs/websockets": "^6.11.8",
 		"express": "^4.17.1",
 		"heroes-common": "0.1.0",
-		"lodash": "^4.17.15",
+		"lodash": "^4.17.19",
 		"nest-router": "^1.0.9",
 		"passport": "^0.4.1",
 		"passport-jwt": "^4.0.0",
